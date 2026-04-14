@@ -1,0 +1,34 @@
+name: file_manager_pro
+description: File Manager Pro - Flutter Frontend
+
+publish_to: 'none'
+
+version: 3.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  provider: ^6.1.1
+  google_fonts: ^6.1.0
+  flutter_slidable: ^3.0.1
+  share_plus: ^7.2.1
+  url_launcher: ^6.2.2
+  path: ^1.8.3
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: FiraCode
+      fonts:
+        - asset: assets/fonts/FiraCode-Regular.ttf

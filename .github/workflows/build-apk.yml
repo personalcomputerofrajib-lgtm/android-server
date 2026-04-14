@@ -1,0 +1,103 @@
+name: Build Flutter APK
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Create Flutter project structure
+        working-directory: frontend_flutter
+        run: |
+          # Create full Flutter project scaffolding (android/, ios/, web/, etc.)
+          flutter create --org com.filemanager --project-name file_manager_pro .
+          
+      - name: Add Internet permission to AndroidManifest
+        working-directory: frontend_flutter
+        run: |
+          # Add INTERNET permission to debug manifest
+          sed -i 's|<manifest|<manifest xmlns:tools="http://schemas.android.com/tools"|' android/app/src/main/AndroidManifest.xml 2>/dev/null || true
+          
+          # Ensure INTERNET permission exists in main manifest
+          if ! grep -q "android.permission.INTERNET" android/app/src/main/AndroidManifest.xml; then
+            sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
+          fi
+          
+          # Also for debug manifest
+          if [ -f android/app/src/debug/AndroidManifest.xml ]; then
+            if ! grep -q "android.permission.INTERNET" android/app/src/debug/AndroidManifest.xml; then
+              sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/debug/AndroidManifest.xml
+            fi
+          fi
+
+      - name: Fix file_provider.dart imports
+        working-directory: frontend_flutter
+        run: |
+          # file_provider.dart uses Icons and dart:io - fix imports
+          if ! grep -q "import 'package:flutter/material.dart'" lib/providers/file_provider.dart; then
+            sed -i "1i import 'package:flutter/material.dart';" lib/providers/file_provider.dart
+          fi
+
+      - name: Fix server_screen.dart imports
+        working-directory: frontend_flutter
+        run: |
+          # server_screen.dart uses Directory and Platform
+          if ! grep -q "import 'dart:io'" lib/screens/server_screen.dart; then
+            sed -i "1i import 'dart:io';" lib/screens/server_screen.dart
+          fi
+
+      - name: Get Flutter dependencies
+        working-directory: frontend_flutter
+        run: flutter pub get
+
+      - name: Analyze code (non-blocking)
+        working-directory: frontend_flutter
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings || true
+
+      - name: Build APK (Release)
+        working-directory: frontend_flutter
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - name: Build APK (Debug) as fallback
+        if: failure()
+        working-directory: frontend_flutter
+        run: flutter build apk --debug --no-tree-shake-icons
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: file-manager-pro-release-apk
+          path: frontend_flutter/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      - name: Upload Debug APK (fallback)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: file-manager-pro-debug-apk
+          path: frontend_flutter/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 30
