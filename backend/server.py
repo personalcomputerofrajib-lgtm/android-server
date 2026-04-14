@@ -1,16 +1,23 @@
 """
 =============================================================
-FILE MANAGER PRO — REST API SERVER
+FILE MANAGER PRO — REST API SERVER v3.1
 =============================================================
 Run:  python server.py
 API:  http://127.0.0.1:8000
+
+Features:
+  - API Key authentication (X-API-Key header)
+  - CORS enabled for Flutter app
+  - Auto-start prints connection info for real devices
 =============================================================
 """
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from functools import wraps
 import os
 import shutil
+import secrets
 
 from core.file_operations import FileOperations
 from core.terminal_engine import TerminalEngine
@@ -24,6 +31,28 @@ file_ops = FileOperations()
 terminal = TerminalEngine()
 server_mgr = ServerManager()
 
+# ==================== AUTHENTICATION ====================
+
+# API Key — must match the key in Flutter's ApiService
+API_KEY = os.environ.get("FMPRO_API_KEY", "fmpro_2024_secure_key")
+
+# Public routes that don't need auth (health check only)
+PUBLIC_ROUTES = {"/", "/api/health"}
+
+
+@app.before_request
+def check_api_key():
+    """Validate API key on every request except public routes"""
+    if request.path in PUBLIC_ROUTES:
+        return None
+    
+    provided_key = request.headers.get("X-API-Key", "")
+    if provided_key != API_KEY:
+        return jsonify({
+            "error": "Unauthorized",
+            "message": "Invalid or missing API key. Add X-API-Key header."
+        }), 401
+
 
 # ==================== HEALTH ====================
 
@@ -31,8 +60,9 @@ server_mgr = ServerManager()
 def index():
     return jsonify({
         "app": "File Manager Pro API",
-        "version": "3.0",
+        "version": "3.1",
         "status": "running",
+        "auth": "API key required (X-API-Key header)",
         "endpoints": {
             "files": "/api/files",
             "terminal": "/api/terminal",
@@ -285,13 +315,21 @@ def stop_all_servers():
 # ==================== RUN ====================
 
 if __name__ == "__main__":
-    print()
-    print("=" * 50)
-    print("  FILE MANAGER PRO — API SERVER")
-    print("=" * 50)
     ip = server_mgr.get_local_ip()
-    print(f"  Local:   http://127.0.0.1:8000")
-    print(f"  Network: http://{ip}:8000")
-    print("=" * 50)
+    port = int(os.environ.get("PORT", 8000))
+
     print()
-    app.run(host="0.0.0.0", port=8000, debug=False)
+    print("=" * 55)
+    print("  FILE MANAGER PRO - API SERVER v3.1")
+    print("=" * 55)
+    print(f"  Local:     http://127.0.0.1:{port}")
+    print(f"  Network:   http://{ip}:{port}")
+    print(f"  Auth:      API Key required (X-API-Key header)")
+    print("-" * 55)
+    print("  CONNECT FROM REAL PHONE:")
+    print(f"    Set Flutter baseUrl to: http://{ip}:{port}")
+    print("    Both devices must be on same WiFi network")
+    print("=" * 55)
+    print()
+
+    app.run(host="0.0.0.0", port=port, debug=False)
