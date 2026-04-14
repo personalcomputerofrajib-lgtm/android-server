@@ -42,7 +42,7 @@ class FileManagerApp extends StatelessWidget {
             backgroundColor: Color(0xFF12121A),
             elevation: 0,
           ),
-          cardTheme: const CardThemeData(
+          cardTheme: const CardTheme(
             color: Color(0xFF1A1A24),
             elevation: 2,
           ),
