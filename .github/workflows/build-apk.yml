@@ -35,6 +35,19 @@ jobs:
           # Create full Flutter project scaffolding (android/, ios/, web/, etc.)
           flutter create --org com.filemanager --project-name file_manager_pro .
           
+      - name: Update Kotlin version
+        working-directory: frontend_flutter
+        run: |
+          # Update Kotlin plugin version for newer dependencies like share_plus
+          if [ -f android/settings.gradle ]; then
+            sed -i 's/id "org.jetbrains.kotlin.android" version "1.7.10" apply false/id "org.jetbrains.kotlin.android" version "1.9.24" apply false/g' android/settings.gradle
+            sed -i 's/id "org.jetbrains.kotlin.android" version "1.8.22" apply false/id "org.jetbrains.kotlin.android" version "1.9.24" apply false/g' android/settings.gradle
+          fi
+          if [ -f android/build.gradle ]; then
+            sed -i "s/ext.kotlin_version = '1.7.10'/ext.kotlin_version = '1.9.24'/g" android/build.gradle
+            sed -i "s/ext.kotlin_version = '1.8.22'/ext.kotlin_version = '1.9.24'/g" android/build.gradle
+          fi
+          
       - name: Add Internet permission to AndroidManifest
         working-directory: frontend_flutter
         run: |
